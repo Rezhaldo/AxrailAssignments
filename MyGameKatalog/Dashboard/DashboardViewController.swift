@@ -21,12 +21,15 @@ class DashboardViewController: UIViewController {
         
         tableViewGame.dataSource = self
         tableViewGame.delegate = self
+        tableViewGame.dragInteractionEnabled = true
+        tableViewGame.dragDelegate = self
         
         tableViewGame.register(UINib(nibName: "GameTableViewCell", bundle: nil), forCellReuseIdentifier: "GamesCell")
         
         navigationController?.navigationBar.prefersLargeTitles = true
         
         setupBinders()
+        viewModel.getData()
 
     }
     
@@ -36,11 +39,13 @@ class DashboardViewController: UIViewController {
                 print(error)
             } else {
                 self?.tableViewGame.reloadData()
-                self?.viewModel.getData()
+
             
             }
         }
     }
+    
+
 
 
 }
@@ -69,10 +74,34 @@ extension DashboardViewController: UITableViewDataSource {
         }
     }
     
+  
+    func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
+        return true
+    }
+    func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+        gameData?.results.swapAt(sourceIndexPath.row, destinationIndexPath.row)
+        
+    }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        let alert = UIAlertController(title: "Delete Movie", message: "Are you sure to proceed this action?", preferredStyle: .alert)
+        
+        let submitAction = UIAlertAction(title: "Delete", style: .destructive) { _ in
+            if editingStyle == .delete {
+                gameData?.results.remove(at: indexPath.row)
+                tableView.deleteRows(at: [indexPath], with: .fade)
+            }
+        }
+        alert.addAction(submitAction)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
+    }
     
 }
 
 extension DashboardViewController: UITableViewDelegate {
+    
+
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         performSegue(withIdentifier: "moveToDetail", sender: gameData?.results[indexPath.row])
     }
@@ -84,4 +113,15 @@ extension DashboardViewController: UITableViewDelegate {
             }
         }
     }
+    
+}
+
+
+extension DashboardViewController: UITableViewDragDelegate {
+    func tableView(_ tableView: UITableView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
+        let dragItem = UIDragItem(itemProvider: NSItemProvider())
+        dragItem.localObject = gameData?.results[indexPath.row]
+        return [ dragItem ]
+    }
+
 }
